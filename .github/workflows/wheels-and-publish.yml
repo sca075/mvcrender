@@ -1,0 +1,101 @@
+name: Wheels (build + musllinux) and Publish
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ "v*" ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  wheels:
+    name: Build wheels (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-22.04, macos-13, macos-14, windows-2022 ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Enable QEMU (for aarch64 emulation)
+        if: runner.os == 'Linux'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: all
+
+      - name: Build wheels with cibuildwheel
+        uses: pypa/cibuildwheel@v2
+        env:
+          # Build only CPython 3.13 wheels across platforms
+          CIBW_BUILD: "cp313-*"
+          # Architectures
+          CIBW_ARCHS_LINUX: "x86_64 aarch64"
+          CIBW_ARCHS_MACOS: "x86_64 arm64"
+          # Ensure both manylinux and musllinux policies are used
+          CIBW_MANYLINUX_X86_64: manylinux_2_28
+          CIBW_MANYLINUX_AARCH64: manylinux_2_28
+          CIBW_MUSLLINUX_X86_64: musllinux_1_2
+          CIBW_MUSLLINUX_AARCH64: musllinux_1_2
+          # Skip PyPy and 32-bit
+          CIBW_SKIP: "pp* *-win32 *-manylinux_i686 *-musllinux_i686"
+          # Minimal import test to avoid heavy deps
+          CIBW_TEST_COMMAND: >
+            python -c "import mvcrender; from mvcrender.autocrop import AutoCrop; print('ok')"
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}
+          path: wheelhouse/*.whl
+          if-no-files-found: error
+
+  sdist:
+    name: Build sdist
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Install build backend
+        run: python -m pip install --upgrade build
+
+      - name: Build sdist
+        run: python -m build -s
+
+      - name: Upload sdist
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  publish:
+    name: Publish to PyPI (on tag)
+    needs: [ wheels, sdist ]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+
+      - name: Download sdist
+        uses: actions/download-artifact@v4
+        with:
+          name: sdist
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.10.3
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+
