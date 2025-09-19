@@ -27,7 +27,7 @@ jobs:
           platforms: all
 
       - name: Build wheels with cibuildwheel
-        uses: pypa/cibuildwheel@v2
+        uses: pypa/cibuildwheel@v2.21.3
         env:
           # Build only CPython 3.13 wheels across platforms
           CIBW_BUILD: "cp313-*"
