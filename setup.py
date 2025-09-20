@@ -12,11 +12,5 @@ ext_modules = [
 ]
 
 setup(
-    name="mvcrender",
-    version="0.0.1",
-    packages=find_packages(where="src"),
-    package_dir={"": "src"},
     ext_modules=ext_modules,
-    python_requires=">=3.13",
-    install_requires=["numpy>=2.1"],
 )

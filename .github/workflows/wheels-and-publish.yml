@@ -81,33 +81,27 @@ jobs:
           if-no-files-found: error
 
   publish:
-    name: Publish to PyPI (on GitHub Release)
-    needs: [ wheels, sdist ]
+    name: Publish to PyPI and GitHub Release (on GitHub Release)
+    needs: [ sdist ]
     if: github.event_name == 'release' && github.event.action == 'published'
     runs-on: ubuntu-22.04
     steps:
-      - name: Download wheels
-        uses: actions/download-artifact@v4
-        with:
-          pattern: wheels-*
-          merge-multiple: true
-          path: dist
-
       - name: Download sdist
         uses: actions/download-artifact@v4
         with:
           name: sdist
           path: dist
-      - name: Collect dists into dist/
+
+      - name: List distribution files
         shell: bash
         run: |
-          set -euo pipefail
-          shopt -s nullglob
-          mkdir -p dist
-          for f in dist/wheelhouse/*.whl; do mv "$f" dist/; done
-          for f in dist/dist/*.tar.gz; do mv "$f" dist/; done
-          ls -lah dist
+          ls -lah dist/
 
+      - name: Upload sdist to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.tar.gz
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@v1.12.4
@@ -116,5 +110,5 @@ jobs:
           password: ${{ secrets.PYPY_PUB_KEY }}
           packages-dir: dist/
           print-hash: true
-          verify-metadata: false
+          verify-metadata: true
           
