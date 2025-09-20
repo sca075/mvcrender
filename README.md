@@ -1,7 +1,14 @@
 # mvcrender
 
-High‑performance image autocropping for Home Assistant and Python 3.13+, with a fast C extension.
+As per libraries like OpenCV are not available on Home Assistant's Python 3.13, this library provides
+a fast C extension for manipulating images generated in Numpy.
+This is a kind of collection of image processing utilities that can be used in Home Assistant.
+The development focus is on improving the performance of the Valetudo Map Parsers Library.
 
+## Functions Implemented
+- AutoCrop: determines the bounding box of an image and crops it based on a background color.
+
+## Supported platforms
 - Python: 3.13+
 - Wheels: manylinux and musllinux (Alpine), macOS (x86_64, arm64), Windows (x86_64)
 - Platforms: Linux x86_64/aarch64, macOS x86_64/arm64, Windows x86_64

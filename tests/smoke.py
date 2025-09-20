@@ -1,5 +1,6 @@
 import numpy as np
 from mvcrender.autocrop import AutoCrop
+
 import time
 from PIL import Image
 
@@ -14,24 +15,22 @@ class DummyBaseHandler:
     def __init__(self):
         self.crop_img_size = [0, 0]
         self.crop_area = None  # [0,0,0,0]DummyShared()
+        self.shared = None
+        self.file_name = "smoke"
+        self.robot_position = (200, 150)
+        self.robot_pos = {"in_room": None}
 
 class DummyHandler(DummyBaseHandler, AutoCrop):
     def __init__(self, shared=None):
         DummyBaseHandler.__init__(self)
         self.shared = shared
         AutoCrop.__init__(self, self)
-
-        self.file_name = "smoke"
         self.max_frames = 0
-        self.robot_pos = {"in_room": None}
-        self.robot_position = (200, 150)
-        self.crop_img_size = [0,0]
-        self.crop_area = None # [0,0,0,0]
         self.room_propriety = None
         self.rooms_pos = []
 
+# Init simple handler as done in Valetudo Map Parsers Library
 h = DummyHandler(DummyShared())
-# ac = AutoCrop(handler=h)
 
 H,W = 5700, 5700
 img = np.zeros((H,W,4), dtype=np.uint8)
@@ -39,11 +38,14 @@ img[...,3] = 255
 img[:, :, :3] = (93,109,126)  # bg
 img[500:2500, 800:3200, :3] = (120,200,255)  # fg block
 
-# Warm-up to avoid first-call overhead
-
 # Averaged timing for stability
-runs_avg = 100
+# The first run is slower as the CropArea is computed
+# Subsequent runs are faster as the CropArea is cached
+# Compare with Python implementation we gain a factor of 2-3x speedup
+
+runs_avg = 20
 start = time.perf_counter()
+res_avg_img: np.ndarray = img # just to make mypy happy
 for _ in range(runs_avg):
     start_single = time.perf_counter()
     res_avg_img = h.async_auto_trim_and_zoom_image(
@@ -54,7 +56,7 @@ for _ in range(runs_avg):
         rand256=True,
     )
     single_total_ms = (time.perf_counter() - start_single) * 1000.0
-    print(f"single total: {single_total_ms:.3f} ms")
+    print(f"Run {_} - total time: {single_total_ms:.3f} ms")
 
 elapsed_total_ms = (time.perf_counter() - start) * 1000.0  / runs_avg
 
@@ -62,5 +64,6 @@ elapsed_total_ms = (time.perf_counter() - start) * 1000.0  / runs_avg
 res_img = Image.fromarray(res_avg_img)
 res_img.show()
 
+# Report timing and output image size and confirm cropping worked.
 print(f"out shape: {res_avg_img.shape} crop_img_size: {h.crop_img_size} crop_area: {h.crop_area}")
 print(f"avg total: {elapsed_total_ms:.3f} ms over {runs_avg} runs")
