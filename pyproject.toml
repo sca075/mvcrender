@@ -3,6 +3,7 @@ requires = ["setuptools>=69", "wheel", "numpy>=2.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
+Metadata-Version = 2.2
 name = "mvcrender"
 version = "0.0.1"
 description = "This is a cPython version of some functions used in Vsletudo Map Parser"
@@ -11,15 +12,3 @@ requires-python = ">=3.13"
 dependencies = ["numpy>=2.1"]
 license = "Apache-2.0"
 readme = "README.md"
-classifiers = [
-    "Development Status :: 1 - Betha",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: Implementation :: CPython",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-]
-
-
-
