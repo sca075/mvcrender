@@ -3,7 +3,6 @@ requires = ["setuptools>=69", "wheel", "numpy>=2.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
-Metadata-Version = 2.2
 name = "mvcrender"
 version = "0.0.1"
 description = "This is a cPython version of some functions used in Vsletudo Map Parser"
