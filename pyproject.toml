@@ -7,7 +7,7 @@ Metadata-Version = 2.2
 name = "mvcrender"
 version = "0.0.1"
 description = "This is a cPython version of some functions used in Vsletudo Map Parser"
-authors = ["Sandro Cantarella <gsca075@gmail.com>"]
+authors = [{name = "Sandro Cantarella", email = "gsca075@gmail.com"}]
 requires-python = ">=3.13"
 dependencies = ["numpy>=2.1"]
 license = "Apache-2.0"
