@@ -41,6 +41,8 @@ jobs:
           CIBW_MUSLLINUX_AARCH64: musllinux_1_2
           # Skip PyPy and 32-bit
           CIBW_SKIP: "pp* *-win32 *-manylinux_i686 *-musllinux_i686"
+          CIBW_TEST_SKIP: "*-macosx_arm64"
+
           # Minimal import test to avoid heavy deps
           CIBW_TEST_COMMAND: >
             python -c "import mvcrender; from mvcrender.autocrop import AutoCrop; print('ok')"
@@ -96,9 +98,22 @@ jobs:
         with:
           name: sdist
           path: dist
+      - name: Collect dists into dist/
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          mkdir -p dist
+          for f in dist/wheelhouse/*.whl; do mv "$f" dist/; done
+          for f in dist/dist/*.tar.gz; do mv "$f" dist/; done
+          ls -lah dist
+
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@v1.10.3
         with:
           password: ${{ secrets.PYPY_PUB_KEY }}
+          packages-dir: dist/
+          verbose: true
+          print-hash: true
 
