@@ -8,6 +8,10 @@ on:
   release:
     types: [ published ]
 
+permissions:
+  contents: write  # Required for uploading release assets
+  id-token: write  # Required for PyPI trusted publishing (optional)
+
 jobs:
   wheels-linux:
     name: Build wheels (Linux ${{ matrix.arch }})
@@ -137,39 +141,41 @@ jobs:
 
   publish:
     name: Publish to PyPI and GitHub Release (on GitHub Release)
-    needs: [ wheels-linux, wheels-macos, wheels-windows, sdist ]
+    needs: [ sdist ]
     if: github.event_name == 'release' && github.event.action == 'published'
     runs-on: ubuntu-22.04
     steps:
-      - name: Download all artifacts
+      - name: Download sdist artifact
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
+          name: sdist
+          path: artifacts/sdist
 
-      - name: Collect distributions
+      - name: Prepare source distribution
         shell: bash
         run: |
           mkdir -p dist
-          # Copy sdist
+          # Copy sdist (this is the only file we need)
           cp artifacts/sdist/*.tar.gz dist/
-          # Copy all wheels (optional - for GitHub release assets)
-          find artifacts -name "*.whl" -exec cp {} dist/ \;
+          echo "Source distribution prepared:"
           ls -lah dist/
+          echo "✅ Only mvcrender-0.0.1.tar.gz will be published"
 
-      - name: Upload distributions to GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Upload source distribution to GitHub Release
+        uses: softprops/action-gh-release@v2.3.3
         with:
-          files: |
-            dist/*.tar.gz
-            dist/*.whl
-          token: ${{ secrets.GITHUB_TOKEN }}
+          files: dist/*.tar.gz
+          fail_on_unmatched_files: true
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish only sdist to PyPI
+      - name: Publish source distribution to PyPI
         uses: pypa/gh-action-pypi-publish@v1.12.4
         with:
           user: __token__
           password: ${{ secrets.PYPY_PUB_KEY }}
-          packages-dir: artifacts/sdist/
+          packages-dir: dist/
           print-hash: true
           verify-metadata: true
           
