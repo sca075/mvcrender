@@ -51,9 +51,3 @@ python -m build
 ### Tests
 
 A simple smoke example lives in tests/smoke.py. CI runs a minimal import test on the built wheels to keep the matrix fast and reliable.
-
-## Release
-
-- Tag a version like `v0.0.3` on GitHub
-- GitHub Actions will build wheels for all targets (including musllinux) and upload them to PyPI using `PYPI_API_TOKEN`.
-
