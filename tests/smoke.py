@@ -43,7 +43,7 @@ img[500:2500, 800:3200, :3] = (120,200,255)  # fg block
 # Subsequent runs are faster as the CropArea is cached
 # Compare with Python implementation we gain a factor of 2-3x speedup
 
-runs_avg = 20
+runs_avg = 2
 start = time.perf_counter()
 res_avg_img: np.ndarray = img # just to make mypy happy
 for _ in range(runs_avg):
