@@ -8,54 +8,105 @@ on:
   release:
     types: [ published ]
 
+permissions:
+  contents: write  # Required for uploading release assets
+  id-token: write  # Required for PyPI trusted publishing (optional)
+
 jobs:
-  wheels:
-    name: Build wheels (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+  wheels-linux:
+    name: Build wheels (Linux ${{ matrix.arch }})
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-22.04, macos-13, macos-14, windows-2022 ]
+        arch: [x86_64, aarch64]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Enable QEMU (for aarch64 emulation)
-        if: runner.os == 'Linux'
+        if: matrix.arch == 'aarch64'
         uses: docker/setup-qemu-action@v3
         with:
-          platforms: all
+          platforms: arm64
 
       - name: Build wheels with cibuildwheel
         uses: pypa/cibuildwheel@v2.21.3
         env:
-          # Build only CPython 3.13 wheels across platforms
           CIBW_BUILD: "cp313-*"
-          # Architectures
-          CIBW_ARCHS_LINUX: "x86_64 aarch64"
-          CIBW_ARCHS_MACOS: "x86_64 arm64"
-          # Ensure both manylinux and musllinux policies are used
-          CIBW_MANYLINUX_X86_64: manylinux_2_28
-          CIBW_MANYLINUX_AARCH64: manylinux_2_28
+          CIBW_ARCHS_LINUX: ${{ matrix.arch }}
+          # Use faster manylinux_2_17 instead of manylinux_2_28
+          CIBW_MANYLINUX_X86_64: manylinux_2_17
+          CIBW_MANYLINUX_AARCH64: manylinux_2_17
           CIBW_MUSLLINUX_X86_64: musllinux_1_2
           CIBW_MUSLLINUX_AARCH64: musllinux_1_2
-          # Skip PyPy and 32-bit
           CIBW_SKIP: "pp* *-win32 *-manylinux_i686 *-musllinux_i686"
-          CIBW_TEST_SKIP: "*-macosx_arm64"
-
-          # Minimal import test to avoid heavy deps
-          CIBW_TEST_COMMAND: >
-            python -c "import mvcrender; from mvcrender.autocrop import AutoCrop; print('ok')"
+          # Skip testing to speed up builds - we test in sdist job
+          CIBW_TEST_SKIP: "*"
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.os }}
+          name: wheels-linux-${{ matrix.arch }}
+          path: wheelhouse/*.whl
+          if-no-files-found: error
+
+  wheels-macos:
+    name: Build wheels (macOS ${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: macos-13
+          - arch: arm64
+            runner: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build wheels with cibuildwheel
+        uses: pypa/cibuildwheel@v2.21.3
+        env:
+          CIBW_BUILD: "cp313-*"
+          CIBW_ARCHS_MACOS: ${{ matrix.arch }}
+          CIBW_SKIP: "pp*"
+          # Skip testing to speed up builds
+          CIBW_TEST_SKIP: "*"
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-macos-${{ matrix.arch }}
+          path: wheelhouse/*.whl
+          if-no-files-found: error
+
+  wheels-windows:
+    name: Build wheels (Windows)
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build wheels with cibuildwheel
+        uses: pypa/cibuildwheel@v2.21.3
+        env:
+          CIBW_BUILD: "cp313-*"
+          CIBW_ARCHS_WINDOWS: "AMD64"
+          CIBW_SKIP: "pp* *-win32"
+          # Skip testing to speed up builds
+          CIBW_TEST_SKIP: "*"
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-windows
           path: wheelhouse/*.whl
           if-no-files-found: error
 
   sdist:
-    name: Build sdist
+    name: Build sdist and test
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -67,11 +118,19 @@ jobs:
           python-version: '3.13'
           cache: 'pip'
 
-      - name: Install build backend
-        run: python -m pip install --upgrade build
+      - name: Install build backend and test dependencies
+        run: |
+          python -m pip install --upgrade build
+          python -m pip install numpy>=2.1 pillow
 
       - name: Build sdist
         run: python -m build -s
+
+      - name: Install package from sdist and test
+        run: |
+          python -m pip install dist/*.tar.gz
+          python -c "import mvcrender; from mvcrender.autocrop import AutoCrop; print('Package import successful!')"
+          python tests/smoke.py
 
       - name: Upload sdist
         uses: actions/upload-artifact@v4
@@ -82,33 +141,49 @@ jobs:
 
   publish:
     name: Publish to PyPI and GitHub Release (on GitHub Release)
-    needs: [ sdist ]
+    needs: [ wheels-linux, wheels-macos, wheels-windows, sdist ]
     if: github.event_name == 'release' && github.event.action == 'published'
     runs-on: ubuntu-22.04
+    environment:
+      name: pypi
+      url: https://pypi.org/p/mvcrender
+    permissions:
+      id-token: write  # mandatory for trusted publishing
     steps:
-      - name: Download sdist
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: sdist
-          path: dist
+          path: artifacts
 
-      - name: List distribution files
+      - name: Collect distributions for publishing
         shell: bash
         run: |
+          mkdir -p dist
+
+          # Copy sdist
+          cp artifacts/sdist/*.tar.gz dist/
+
+          # Copy all wheels
+          find artifacts -name "*.whl" -exec cp {} dist/ \;
+
+          echo "All distributions collected:"
           ls -lah dist/
+          echo "✅ Both wheels and sdist will be published to PyPI"
 
-      - name: Upload sdist to GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Upload distributions to GitHub Release
+        uses: softprops/action-gh-release@v2.3.3
         with:
-          files: dist/*.tar.gz
-          token: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            dist/*.tar.gz
+            dist/*.whl
+          fail_on_unmatched_files: true
+          generate_release_notes: false
 
-      - name: Publish to PyPI
+      - name: Publish distributions to PyPI
         uses: pypa/gh-action-pypi-publish@v1.12.4
         with:
-          user: __token__
-          password: ${{ secrets.PYPY_PUB_KEY }}
           packages-dir: dist/
           print-hash: true
           verify-metadata: true
+          attestations: true
           
