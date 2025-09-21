@@ -1,4 +1,3 @@
-
 name: PR Validation - Build macOS and Windows wheels
 
 on:
