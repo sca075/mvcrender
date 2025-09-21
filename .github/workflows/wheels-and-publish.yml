@@ -144,60 +144,46 @@ jobs:
     needs: [ wheels-linux, wheels-macos, wheels-windows, sdist ]
     if: github.event_name == 'release' && github.event.action == 'published'
     runs-on: ubuntu-22.04
+    environment:
+      name: pypi
+      url: https://pypi.org/p/mvcrender
+    permissions:
+      id-token: write  # mandatory for trusted publishing
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
 
-      - name: Collect all distributions and create final tar.gz
+      - name: Collect distributions for publishing
         shell: bash
         run: |
-          mkdir -p temp_dist dist
+          mkdir -p dist
 
-          # Extract version from sdist filename
-          SDIST_FILE=$(ls artifacts/sdist/*.tar.gz)
-          VERSION=$(basename "$SDIST_FILE" .tar.gz | sed 's/mvcrender-//')
-          echo "Detected version: $VERSION"
+          # Copy sdist
+          cp artifacts/sdist/*.tar.gz dist/
 
-          # Copy all wheels to temp directory
-          find artifacts -name "*.whl" -exec cp {} temp_dist/ \;
+          # Copy all wheels
+          find artifacts -name "*.whl" -exec cp {} dist/ \;
 
-          # Extract the original sdist to get source files
-          cd temp_dist
-          tar -xzf "../$SDIST_FILE"
-          EXTRACTED_DIR=$(basename "$SDIST_FILE" .tar.gz)
-
-          # Move source files to root of temp_dist
-          mv "$EXTRACTED_DIR"/* .
-          rmdir "$EXTRACTED_DIR"
-
-          # Create final tar.gz with all wheels and source
-          cd ..
-          tar -czf "dist/mvcrender-${VERSION}.tar.gz" -C temp_dist .
-
-          # Clean up temp directory
-          rm -rf temp_dist
-
-          echo "Final distribution created:"
+          echo "All distributions collected:"
           ls -lah dist/
-          echo "✅ Only mvcrender-${VERSION}.tar.gz will be published to PyPI"
+          echo "✅ Both wheels and sdist will be published to PyPI"
 
-      - name: Upload complete distribution to GitHub Release
+      - name: Upload distributions to GitHub Release
         uses: softprops/action-gh-release@v2.3.3
         with:
-          files: dist/mvcrender-*.tar.gz
+          files: |
+            dist/*.tar.gz
+            dist/*.whl
           fail_on_unmatched_files: true
           generate_release_notes: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish complete distribution to PyPI
+      - name: Publish distributions to PyPI
         uses: pypa/gh-action-pypi-publish@v1.12.4
         with:
-          user: __token__
-          password: ${{ secrets.PYPY_PUB_KEY }}
           packages-dir: dist/
           print-hash: true
           verify-metadata: true
+          attestations: true
           
