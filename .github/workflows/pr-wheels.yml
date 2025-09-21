@@ -1,0 +1,81 @@
+name: PR Validation - Build macOS and Windows wheels
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'setup.py'
+      - 'pyproject.toml'
+      - '.github/workflows/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  wheels-macos:
+    name: Build wheels (macOS ${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: macos-13
+          - arch: arm64
+            runner: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build wheels with cibuildwheel
+        uses: pypa/cibuildwheel@v2.21.3
+        env:
+          CIBW_BUILD: "cp313-*"
+          CIBW_ARCHS_MACOS: ${{ matrix.arch }}
+          CIBW_SKIP: "pp*"
+          # Skip testing to speed up builds
+          CIBW_TEST_SKIP: "*"
+
+      - name: Verify wheel was built
+        run: |
+          ls -la wheelhouse/
+          echo "✅ macOS ${{ matrix.arch }} wheel built successfully"
+
+  wheels-windows:
+    name: Build wheels (Windows)
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build wheels with cibuildwheel
+        uses: pypa/cibuildwheel@v2.21.3
+        env:
+          CIBW_BUILD: "cp313-*"
+          CIBW_ARCHS_WINDOWS: "AMD64"
+          CIBW_SKIP: "pp* *-win32"
+          # Skip testing to speed up builds
+          CIBW_TEST_SKIP: "*"
+
+      - name: Verify wheel was built
+        run: |
+          dir wheelhouse\
+          echo "✅ Windows AMD64 wheel built successfully"
+
+  validation-summary:
+    name: PR Validation Summary
+    needs: [wheels-macos, wheels-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validation complete
+        run: |
+          echo "🎉 PR validation passed!"
+          echo "✅ macOS wheels (x86_64, arm64) built successfully"
+          echo "✅ Windows wheels (AMD64) built successfully"
+          echo ""
+          echo "Ready for merge! Full platform testing will run on release."
