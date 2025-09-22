@@ -231,7 +231,7 @@ static PyObject* rot_rgba(PyArrayObject* src_arr, int rotate){
             }
         }
         Py_END_ALLOW_THREADS
-    } else if (rotate == 90){
+    } else if (rotate == 270){
         int OW = H;
         Py_BEGIN_ALLOW_THREADS
         for (int y=0; y<H; y++){
@@ -244,7 +244,7 @@ static PyObject* rot_rgba(PyArrayObject* src_arr, int rotate){
             }
         }
         Py_END_ALLOW_THREADS
-    } else { // 270
+    } else { // 90
         int OW = H;
         Py_BEGIN_ALLOW_THREADS
         for (int y=0; y<H; y++){

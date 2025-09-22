@@ -1,4 +1,4 @@
-from setuptools import setup, Extension, find_packages
+from setuptools import setup, Extension
 import numpy
 
 ext_modules = [
