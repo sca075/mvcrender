@@ -19,7 +19,7 @@
     - async_get_room_bounding_box(room_name, rand256=False) -> tuple|None
     - async_check_if_zoom_is_on(image_array, margin_size=100, zoom=False, rand256=False) -> ndarray
     - async_rotate_the_image(trimmed, rotate) -> ndarray
-    - async_auto_trim_and_zoom_image(image_array, detect_colour=(93,109,126,255),
+    - auto_trim_and_zoom_image(image_array, detect_colour=(93,109,126,255),
                                      margin_size=0, rotate=0, zoom=False, rand256=False) -> ndarray
 */
 
@@ -737,8 +737,8 @@ static PyObject* AutoCrop_async_rotate_the_image(AutoCropObject* self, PyObject*
     return out;
 }
 
-/* async_auto_trim_and_zoom_image(...) -> ndarray */
-static PyObject* AutoCrop_async_auto_trim_and_zoom_image(AutoCropObject* self, PyObject* args, PyObject* kw){
+/* auto_trim_and_zoom_image(...) -> ndarray */
+static PyObject* AutoCrop_auto_trim_and_zoom_image(AutoCropObject* self, PyObject* args, PyObject* kw){
     PyObject* img_obj; PyObject* colour_obj=NULL;
     int margin_size=0, rotate=0, zoom=0, rand256=0;
     static char* kwlist[] = {"image_array","detect_colour","margin_size","rotate","zoom","rand256", NULL};
@@ -869,8 +869,8 @@ static PyMethodDef AutoCrop_methods[] = {
      "async_check_if_zoom_is_on(image_array, margin_size=100, zoom=False, rand256=False) -> ndarray"},
     {"async_rotate_the_image", (PyCFunction)AutoCrop_async_rotate_the_image, METH_VARARGS,
      "async_rotate_the_image(trimmed, rotate) -> ndarray"},
-    {"async_auto_trim_and_zoom_image", (PyCFunction)AutoCrop_async_auto_trim_and_zoom_image, METH_VARARGS|METH_KEYWORDS,
-     "async_auto_trim_and_zoom_image(image_array, detect_colour=(93,109,126,255), margin_size=0, rotate=0, zoom=False, rand256=False) -> ndarray"},
+    {"auto_trim_and_zoom_image", (PyCFunction)AutoCrop_auto_trim_and_zoom_image, METH_VARARGS|METH_KEYWORDS,
+     "auto_trim_and_zoom_image(image_array, detect_colour=(93,109,126,255), margin_size=0, rotate=0, zoom=False, rand256=False) -> ndarray"},
     {NULL, NULL, 0, NULL}
 };
 

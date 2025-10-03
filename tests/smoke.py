@@ -28,6 +28,7 @@ class DummyHandler(DummyBaseHandler, AutoCrop):
         self.max_frames = 0
         self.room_propriety = None
         self.rooms_pos = []
+        self.img_size = (0, 0)
 
 # Init simple handler as done in Valetudo Map Parsers Library
 h = DummyHandler(DummyShared())
@@ -48,10 +49,10 @@ start = time.perf_counter()
 res_avg_img: np.ndarray = img # just to make mypy happy
 for _ in range(runs_avg):
     start_single = time.perf_counter()
-    res_avg_img = h.async_auto_trim_and_zoom_image(
+    res_avg_img = h.auto_trim_and_zoom_image(
         img, (93,109,126,255),
         margin_size=10,
-        rotate=270,
+        rotate=90,
         zoom=False,
         rand256=True,
     )
@@ -62,8 +63,11 @@ elapsed_total_ms = (time.perf_counter() - start) * 1000.0  / runs_avg
 
 # Show one resulting image so visual check remains possible
 res_img = Image.fromarray(res_avg_img)
+print(f"Resulting image: {res_img.size}")
 res_img.show()
 
 # Report timing and output image size and confirm cropping worked.
 print(f"out shape: {res_avg_img.shape} crop_img_size: {h.crop_img_size} crop_area: {h.crop_area}")
 print(f"avg total: {elapsed_total_ms:.3f} ms over {runs_avg} runs")
+print(f"shared data: {h.shared.image_ref_width}x{h.shared.image_ref_height}")
+print(f"hander data: {h.img_size}")
