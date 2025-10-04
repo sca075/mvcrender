@@ -8,7 +8,21 @@ ext_modules = [
         include_dirs=[numpy.get_include()],
         extra_compile_args=["-O3", "-ffast-math"],
         language="c",
-    )
+    ),
+    Extension(
+            "mvcrender.blend._native",
+            sources=["src/mvcrender/blend/_native.c"],
+            include_dirs=[numpy.get_include()],
+            extra_compile_args=["-O3", "-ffast-math"],
+            language="c",
+        ),
+    Extension(
+            "mvcrender.draw._native",
+            sources=["src/mvcrender/draw/_native.c"],
+            include_dirs=[numpy.get_include()],
+            extra_compile_args=["-O3", "-ffast-math"],
+            language="c",
+        ),
 ]
 
 setup(
