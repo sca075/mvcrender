@@ -84,23 +84,48 @@ static int load_trims_offsets(AutoCropObject* self) {
 
     long tu=0, td=0, tl=0, tr=0;
     PyObject* v;
-    v = PyDict_GetItemString(dict, "trim_up");    if (v) tu = PyLong_AsLong(v);
-    v = PyDict_GetItemString(dict, "trim_down");  if (v) td = PyLong_AsLong(v);
-    v = PyDict_GetItemString(dict, "trim_left");  if (v) tl = PyLong_AsLong(v);
-    v = PyDict_GetItemString(dict, "trim_right"); if (v) tr = PyLong_AsLong(v);
+    v = PyDict_GetItemString(dict, "trim_up");
+    if (v && v != Py_None) { tu = PyLong_AsLong(v); if (PyErr_Occurred()) { Py_DECREF(dict); Py_DECREF(shared); return -1; } }
+    v = PyDict_GetItemString(dict, "trim_down");
+    if (v && v != Py_None) { td = PyLong_AsLong(v); if (PyErr_Occurred()) { Py_DECREF(dict); Py_DECREF(shared); return -1; } }
+    v = PyDict_GetItemString(dict, "trim_left");
+    if (v && v != Py_None) { tl = PyLong_AsLong(v); if (PyErr_Occurred()) { Py_DECREF(dict); Py_DECREF(shared); return -1; } }
+    v = PyDict_GetItemString(dict, "trim_right");
+    if (v && v != Py_None) { tr = PyLong_AsLong(v); if (PyErr_Occurred()) { Py_DECREF(dict); Py_DECREF(shared); return -1; } }
     Py_DECREF(dict);
 
     self->trim_up = tu; self->trim_down = td; self->trim_left = tl; self->trim_right = tr;
 
-    // offsets
+    // offsets - with NULL checks
     PyObject* off_top    = PyObject_GetAttrString(shared, "offset_top");
     PyObject* off_down   = PyObject_GetAttrString(shared, "offset_down");
     PyObject* off_left   = PyObject_GetAttrString(shared, "offset_left");
     PyObject* off_right  = PyObject_GetAttrString(shared, "offset_right");
-    self->offset_top    = off_top   ? PyLong_AsLong(off_top)   : 0;
-    self->offset_bottom = off_down  ? PyLong_AsLong(off_down)  : 0;
-    self->offset_left   = off_left  ? PyLong_AsLong(off_left)  : 0;
-    self->offset_right  = off_right ? PyLong_AsLong(off_right) : 0;
+
+    self->offset_top = 0;
+    if (off_top && off_top != Py_None) {
+        self->offset_top = PyLong_AsLong(off_top);
+        if (PyErr_Occurred()) { PyErr_Clear(); self->offset_top = 0; }
+    }
+
+    self->offset_bottom = 0;
+    if (off_down && off_down != Py_None) {
+        self->offset_bottom = PyLong_AsLong(off_down);
+        if (PyErr_Occurred()) { PyErr_Clear(); self->offset_bottom = 0; }
+    }
+
+    self->offset_left = 0;
+    if (off_left && off_left != Py_None) {
+        self->offset_left = PyLong_AsLong(off_left);
+        if (PyErr_Occurred()) { PyErr_Clear(); self->offset_left = 0; }
+    }
+
+    self->offset_right = 0;
+    if (off_right && off_right != Py_None) {
+        self->offset_right = PyLong_AsLong(off_right);
+        if (PyErr_Occurred()) { PyErr_Clear(); self->offset_right = 0; }
+    }
+
     Py_XDECREF(off_top); Py_XDECREF(off_down); Py_XDECREF(off_left); Py_XDECREF(off_right);
 
     Py_DECREF(shared);
@@ -639,8 +664,10 @@ static PyObject* AutoCrop_async_check_if_zoom_is_on(AutoCropObject* self, PyObje
                 Py_XDECREF(rpos);
                 Py_XDECREF(robot_pos);
                 Py_XDECREF(vstate); Py_XDECREF(zoomflag); Py_XDECREF(shared);
+                // FIX: Call crop_rgba BEFORE decref
+                PyObject* result = crop_rgba(img_arr, x0,y0,x1,y1);
                 Py_DECREF(img_arr);
-                return crop_rgba(img_arr, x0,y0,x1,y1);
+                return result;
             }
             Py_XDECREF(rpos);
         }
@@ -648,7 +675,9 @@ static PyObject* AutoCrop_async_check_if_zoom_is_on(AutoCropObject* self, PyObje
         if (current_room){
             // try async_get_room_bounding_box
             PyObject* kw2 = Py_BuildValue("{s:O,s:i}", "room_name", current_room, "rand256", rand256);
-            PyObject* bbox = AutoCrop_async_get_room_bounding_box(self, Py_BuildValue("()"), kw2);
+            PyObject* empty_args = Py_BuildValue("()");
+            PyObject* bbox = AutoCrop_async_get_room_bounding_box(self, empty_args, kw2);
+            Py_DECREF(empty_args);
             Py_DECREF(kw2);
             if (bbox && bbox != Py_None){
                 long left, right, up, down;
@@ -664,8 +693,10 @@ static PyObject* AutoCrop_async_check_if_zoom_is_on(AutoCropObject* self, PyObje
                     Py_DECREF(bbox);
                     Py_XDECREF(current_room); Py_XDECREF(robot_pos);
                     Py_XDECREF(vstate); Py_XDECREF(zoomflag); Py_XDECREF(shared);
+                    // FIX: Call crop_rgba BEFORE decref
+                    PyObject* result = crop_rgba(img_arr, x0,y0,x1,y1);
                     Py_DECREF(img_arr);
-                    return crop_rgba(img_arr, x0,y0,x1,y1);
+                    return result;
                 }
                 Py_DECREF(bbox);
             }
@@ -682,8 +713,10 @@ static PyObject* AutoCrop_async_check_if_zoom_is_on(AutoCropObject* self, PyObje
             y0=(int)clampl(u,0,H); y1=(int)clampl(d,0,H);
             Py_XDECREF(robot_pos);
             Py_XDECREF(vstate); Py_XDECREF(zoomflag); Py_XDECREF(shared);
+            // FIX: Call crop_rgba BEFORE decref
+            PyObject* result = crop_rgba(img_arr, x0,y0,x1,y1);
             Py_DECREF(img_arr);
-            return crop_rgba(img_arr, x0,y0,x1,y1);
+            return result;
         }
     }
 
@@ -696,17 +729,23 @@ static PyObject* AutoCrop_async_check_if_zoom_is_on(AutoCropObject* self, PyObje
         x0=(int)clampl(l,0,W); x1=(int)clampl(r,0,W);
         y0=(int)clampl(u,0,H); y1=(int)clampl(d,0,H);
         Py_XDECREF(vstate); Py_XDECREF(zoomflag); Py_XDECREF(shared);
+        // FIX: Call crop_rgba BEFORE decref
+        PyObject* result = crop_rgba(img_arr, x0,y0,x1,y1);
         Py_DECREF(img_arr);
-        return crop_rgba(img_arr, x0,y0,x1,y1);
+        return result;
     }
 
     // default: full copy
     Py_XDECREF(vstate); Py_XDECREF(zoomflag); Py_XDECREF(shared);
-    Py_DECREF(img_arr);
+    // FIX: Create output and copy BEFORE decref img_arr (p points to img_arr data)
     npy_intp dims[3] = { H, W, 4 };
     PyObject* out = PyArray_SimpleNew(3, dims, NPY_UINT8);
-    if (!out) return NULL;
+    if (!out) {
+        Py_DECREF(img_arr);
+        return NULL;
+    }
     memcpy(PyArray_DATA((PyArrayObject*)out), p, (size_t)H*(size_t)W*4);
+    Py_DECREF(img_arr);
     return out;
 }
 
@@ -759,7 +798,9 @@ static PyObject* AutoCrop_auto_trim_and_zoom_image(AutoCropObject* self, PyObjec
         PyLong_AsLong(PyList_GetItem(self->auto_crop,3))==0))
     {
         // compute bbox via async_image_margins
-        PyObject* margins = AutoCrop_async_image_margins(self, Py_BuildValue("(OO)", img_obj, colour_obj));
+        PyObject* margins_args = Py_BuildValue("(OO)", img_obj, colour_obj);
+        PyObject* margins = AutoCrop_async_image_margins(self, margins_args);
+        Py_DECREF(margins_args);
         if (!margins){ if (need_decref_colour) Py_DECREF(colour_obj); return NULL; }
 
         long min_y, min_x, max_x, max_y;
@@ -783,7 +824,9 @@ static PyObject* AutoCrop_auto_trim_and_zoom_image(AutoCropObject* self, PyObjec
         Py_DECREF(wh);
 
         // check_trim(...) raise TrimError on failure
-        PyObject* ct = AutoCrop_check_trim(self, Py_BuildValue("(lllOl)", th, tw, margin_size, img_obj, rotate));
+        PyObject* ct_args = Py_BuildValue("(lllOl)", th, tw, margin_size, img_obj, rotate);
+        PyObject* ct = AutoCrop_check_trim(self, ct_args);
+        Py_DECREF(ct_args);
         if (!ct){
             // exception set; let caller catch TrimError, but your Python path returns e.image
             // Here mimic your try/except: return the image (no crop)
@@ -826,7 +869,9 @@ static PyObject* AutoCrop_auto_trim_and_zoom_image(AutoCropObject* self, PyObjec
     if (!trimmed){ if (need_decref_colour) Py_DECREF(colour_obj); return NULL; }
 
     // rotated = await async_rotate_the_image(trimmed, rotate)
-    PyObject* rotated = AutoCrop_async_rotate_the_image(self, Py_BuildValue("(Oi)", trimmed, rotate));
+    PyObject* rotate_args = Py_BuildValue("(Oi)", trimmed, rotate);
+    PyObject* rotated = AutoCrop_async_rotate_the_image(self, rotate_args);
+    Py_DECREF(rotate_args);
     Py_DECREF(trimmed);
     if (!rotated){ if (need_decref_colour) Py_DECREF(colour_obj); return NULL; }
 
