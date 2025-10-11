@@ -12,6 +12,12 @@ dependencies = ["numpy>=2.1"]
 license = "Apache-2.0"
 readme = "README.md"
 
+[project.urls]
+Homepage = "https://github.com/sca075/mvcrender"
+Repository = "https://github.com/sca075/mvcrender"
+Issues = "https://github.com/sca075/mvcrender/issues"
+Changelog = "https://github.com/sca075/mvcrender/releases"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
