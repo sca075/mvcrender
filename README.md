@@ -7,6 +7,8 @@ The development focus is on improving the performance of the Valetudo Map Parser
 
 ## Functions Implemented
 - AutoCrop: determines the bounding box of an image and crops it based on a background color.
+- Blend: blend a color or image into another image based on a mask or alpha values.
+- Draw: draw lines, circles, polygons, and polylines on an image.
 
 ## Supported platforms
 - Python: 3.13+
