@@ -23,6 +23,13 @@ ext_modules = [
             extra_compile_args=["-O3", "-ffast-math"],
             language="c",
         ),
+    Extension(
+            "mvcrender.rooms._native",
+            sources=["src/mvcrender/rooms/_native.c"],
+            include_dirs=[numpy.get_include()],
+            extra_compile_args=["-O3", "-ffast-math"],
+            language="c",
+        ),
 ]
 
 setup(

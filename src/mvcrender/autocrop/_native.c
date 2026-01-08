@@ -467,6 +467,8 @@ static PyObject* AutoCrop__init_auto_crop(AutoCropObject* self, PyObject* Py_UNU
             Py_XDECREF(self->auto_crop);
             self->auto_crop = make_list4(self->trim_left, self->trim_up, self->trim_right, self->trim_down);
             (void)AutoCrop_auto_crop_offset(self, NULL);
+            // Update shared ref dimensions when using predefined trims
+            (void)AutoCrop__calculate_trimmed_dimensions(self, NULL);
         } else {
             Py_RETURN_NONE;
         }
