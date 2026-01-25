@@ -74,8 +74,8 @@ jobs:
           CIBW_SKIP: "pp*"
           # Skip testing to speed up builds
           CIBW_TEST_SKIP: "*"
-          # Ensure packaging is installed before build dependencies
-          CIBW_BEFORE_BUILD: "pip install --upgrade 'packaging>=24.2'"
+          # Use latest dependency versions to get packaging>=24.2
+          CIBW_DEPENDENCY_VERSIONS: "latest"
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -99,6 +99,8 @@ jobs:
           CIBW_SKIP: "pp* *-win32"
           # Skip testing to speed up builds
           CIBW_TEST_SKIP: "*"
+          # Use latest dependency versions to get packaging>=24.2
+          CIBW_DEPENDENCY_VERSIONS: "latest"
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
