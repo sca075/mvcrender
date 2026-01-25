@@ -61,7 +61,7 @@ jobs:
           - arch: x86_64
             runner: macos-15-intel
           - arch: arm64
-            runner: macos-14
+            runner: macos-15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -74,6 +74,8 @@ jobs:
           CIBW_SKIP: "pp*"
           # Skip testing to speed up builds
           CIBW_TEST_SKIP: "*"
+          # Ensure packaging is installed before build dependencies
+          CIBW_BEFORE_BUILD: "pip install --upgrade 'packaging>=24.2'"
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
