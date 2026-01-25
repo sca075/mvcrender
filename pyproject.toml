@@ -4,13 +4,37 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mvcrender"
-version = "0.0.7"
-description = "This is a cPython version of some functions used in Vsletudo Map Parser"
+version = "0.0.8"
+description = "High-performance C extensions for image processing in Home Assistant - AutoCrop, Blend, Draw, and Rooms processing for Valetudo Map Parser"
 authors = [{name = "Sandro Cantarella", email = "gsca075@gmail.com"}]
 requires-python = ">=3.13"
 dependencies = ["numpy>=2.1"]
 license = "Apache-2.0"
 readme = "README.md"
+keywords = [
+    "image-processing",
+    "home-assistant",
+    "valetudo",
+    "map-parser",
+    "numpy",
+    "c-extension",
+    "autocrop",
+    "blend",
+    "draw",
+    "rooms",
+    "vacuum-map"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: C",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Image Processing",
+    "Topic :: Home Automation"
+]
 
 [project.urls]
 Homepage = "https://github.com/sca075/mvcrender"

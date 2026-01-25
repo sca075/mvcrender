@@ -8,7 +8,7 @@ from PIL import Image
 
 class DummyShared:
     def __init__(self):
-        self.trims = type("T", (), {"to_dict": lambda self: {"trim_up":0,"trim_down":0,"trim_left":0,"trim_right":0}})()
+        self.trims = type("T", (), {"to_dict": lambda self: {"trim_left":0,"trim_up":0,"trim_right":0,"trim_down":0}})()
         self.offset_top=0; self.offset_down=0; self.offset_left=0; self.offset_right=0
         self.vacuum_state="cleaning"; self.image_auto_zoom=True
         self.image_ref_width=0; self.image_ref_height=0
