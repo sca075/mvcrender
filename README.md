@@ -1,6 +1,6 @@
 # mvcrender
 
-As per libraries like OpenCV are not available on Home Assistant's Python 3.13, this library provides
+As per libraries like OpenCV are not available on Home Assistant's Python 3.12, this library provides
 a fast C extension for manipulating images generated in Numpy.
 This is a kind of collection of image processing utilities that can be used in Home Assistant.
 The development focus is on improving the performance of the Valetudo Map Parsers Library.
