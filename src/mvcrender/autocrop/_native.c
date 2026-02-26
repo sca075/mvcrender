@@ -465,7 +465,7 @@ static PyObject* AutoCrop__init_auto_crop(AutoCropObject* self, PyObject* Py_UNU
         }
         if (self->trim_left || self->trim_up || self->trim_right || self->trim_down){
             Py_XDECREF(self->auto_crop);
-            self->auto_crop = make_list4(self->trim_left, self->trim_up, self->trim_right, self->trim_down);
+            self->auto_crop = make_list4(self->trim_up, self->trim_left, self->trim_right, self->trim_down);
             (void)AutoCrop_auto_crop_offset(self, NULL);
             // Update shared ref dimensions when using predefined trims
             (void)AutoCrop__calculate_trimmed_dimensions(self, NULL);
@@ -762,29 +762,19 @@ static PyObject* AutoCrop_async_rotate_the_image(AutoCropObject* self, PyObject*
     PyObject* out = rot_rgba(src_arr, rotate);
     Py_DECREF(src_arr);
 
-    // Update crop_area to reflect the rotated coordinate system
-    // auto_crop = [left, up, right, down] = indices [0, 1, 2, 3]
-    // After rotation, the corner indices rotate:
-    // 0°:   [0, 1, 2, 3] = [left, up, right, down]
-    // 90°:  [3, 0, 1, 2] = [down, left, up, right]
-    // 180°: [2, 3, 0, 1] = [right, down, left, up]
-    // 270°: [1, 2, 3, 0] = [up, right, down, left]
-    Py_XDECREF(self->crop_area);
-    if (rotate == 90){
-        self->crop_area = make_list4(self->trim_down, self->trim_left, self->trim_up, self->trim_right);
-    } else if (rotate == 180){
-        self->crop_area = make_list4(self->trim_right, self->trim_down, self->trim_left, self->trim_up);
-    } else if (rotate == 270){
-        self->crop_area = make_list4(self->trim_up, self->trim_right, self->trim_down, self->trim_left);
-    } else {
+    // update crop_area same as Python
+    if (rotate == 90 || rotate == 270){
+        Py_XDECREF(self->crop_area);
         self->crop_area = make_list4(self->trim_left, self->trim_up, self->trim_right, self->trim_down);
+    } else if (rotate == 180){
+        Py_XDECREF(self->crop_area);
+        Py_INCREF(self->auto_crop);
+        self->crop_area = self->auto_crop;
+    } else {
+        Py_XDECREF(self->crop_area);
+        Py_INCREF(self->auto_crop);
+        self->crop_area = self->auto_crop;
     }
-
-    // Sync crop_area to handler for Python parity
-    if (self->handler && self->crop_area){
-        PyObject_SetAttrString(self->handler, "crop_area", self->crop_area);
-    }
-
     return out;
 }
 
