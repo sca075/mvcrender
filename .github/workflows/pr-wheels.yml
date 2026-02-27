@@ -19,44 +19,28 @@ permissions:
 
 jobs:
   wheels-macos:
-    name: Build wheels (macOS ${{ matrix.arch }})
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - arch: x86_64
-            runner: macos-15-intel
-          - arch: arm64
-            runner: macos-14
+    name: Build wheels (macOS arm64 + x86_64 cross-compile)
+    # macos-13 (Intel) was retired Sep 2025. Use arm64 runner and cross-compile
+    # for x86_64 via the macOS SDK - cibuildwheel supports this natively.
+    runs-on: macos-14
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Install packaging
-        run: pip install --upgrade 'packaging>=24.2'
 
       - name: Build wheels with cibuildwheel
         uses: pypa/cibuildwheel@v2.21.3
         env:
           CIBW_BUILD: "cp312-* cp313-* cp314-*"
-          CIBW_ARCHS_MACOS: ${{ matrix.arch }}
+          CIBW_ARCHS_MACOS: "x86_64 arm64"
           CIBW_SKIP: "pp* cp313t-* cp314t-*"
-          # Skip testing to speed up builds
           CIBW_TEST_SKIP: "*"
-          # Use latest dependency versions to get packaging>=24.2
           CIBW_DEPENDENCY_VERSIONS: "latest"
           CIBW_BEFORE_BUILD: "python -m pip install -U pip setuptools wheel numpy"
 
       - name: Verify wheel was built
         run: |
           ls -la wheelhouse/
-          echo "✅ macOS ${{ matrix.arch }} wheel built successfully"
+          echo "✅ macOS wheels (arm64 + x86_64) built successfully"
 
   wheels-windows:
     name: Build wheels (Windows)
