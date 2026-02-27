@@ -1,14 +1,14 @@
 [build-system]
-requires = ["setuptools>=69", "wheel", "numpy==2.3.2", "packaging>=24.2"]
+requires = ["setuptools>=69", "wheel", "numpy>=2.0.0", "packaging>=24.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "mvcrender"
-version = "0.2.1"
+version = "0.2.2"
 description = "High-performance C extensions for image processing in Home Assistant - AutoCrop, Blend, Draw, and Rooms processing for Valetudo Map Parser"
 authors = [{name = "Sandro Cantarella", email = "gsca075@gmail.com"}]
 requires-python = ">=3.12"
-dependencies = ["numpy>=2.3.2"]
+dependencies = ["numpy>=2.0.0"]
 license = "Apache-2.0"
 readme = "README.md"
 keywords = [

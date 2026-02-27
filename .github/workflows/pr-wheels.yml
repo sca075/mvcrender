@@ -33,14 +33,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install packaging
+        run: pip install --upgrade 'packaging>=24.2'
+
       - name: Build wheels with cibuildwheel
         uses: pypa/cibuildwheel@v2.21.3
         env:
-          CIBW_BUILD: "cp313-*"
+          CIBW_BUILD: "cp312-* cp313-* cp314-*"
           CIBW_ARCHS_MACOS: ${{ matrix.arch }}
-          CIBW_SKIP: "pp*"
+          CIBW_SKIP: "pp* cp313t-* cp314t-*"
           # Skip testing to speed up builds
           CIBW_TEST_SKIP: "*"
+          # Use latest dependency versions to get packaging>=24.2
+          CIBW_DEPENDENCY_VERSIONS: "latest"
+          CIBW_BEFORE_BUILD: "python -m pip install -U pip setuptools wheel numpy"
 
       - name: Verify wheel was built
         run: |
@@ -54,14 +65,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install packaging
+        run: pip install --upgrade 'packaging>=24.2'
+
       - name: Build wheels with cibuildwheel
         uses: pypa/cibuildwheel@v2.21.3
         env:
-          CIBW_BUILD: "cp313-*"
+          CIBW_BUILD: "cp312-* cp313-* cp314-*"
           CIBW_ARCHS_WINDOWS: "AMD64"
-          CIBW_SKIP: "pp* *-win32"
+          CIBW_SKIP: "pp* *-win32 cp313t-* cp314t-*"
           # Skip testing to speed up builds
           CIBW_TEST_SKIP: "*"
+          # Use latest dependency versions to get packaging>=24.2
+          CIBW_DEPENDENCY_VERSIONS: "latest"
+          CIBW_BEFORE_BUILD: "python -m pip install -U pip setuptools wheel numpy"
 
       - name: Verify wheel was built
         run: |

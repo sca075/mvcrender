@@ -9,8 +9,8 @@ on:
     types: [ published ]
 
 permissions:
-  contents: write  # Required for uploading release assets
-  id-token: write  # Required for PyPI trusted publishing (optional)
+  contents: write
+  id-token: write
 
 jobs:
   wheels-linux:
@@ -33,15 +33,33 @@ jobs:
       - name: Build wheels with cibuildwheel
         uses: pypa/cibuildwheel@v2.21.3
         env:
-          CIBW_BUILD: "cp313-*"
+          # Build wheels for CPython 3.12, 3.13, 3.14 (covers HA-ish + newest)
+          CIBW_BUILD: "cp312-* cp313-* cp314-*"
+          # Skip PyPy + 32-bit + i686 musllinux + free-threaded tags (cp313t/cp314t)
+          CIBW_SKIP: "pp* *-win32 *-manylinux_i686 *-musllinux_i686 cp313t-* cp314t-*"
+
           CIBW_ARCHS_LINUX: ${{ matrix.arch }}
-          # Use faster manylinux_2_17 instead of manylinux_2_28
+
+          # manylinux images
           CIBW_MANYLINUX_X86_64: manylinux_2_17
           CIBW_MANYLINUX_AARCH64: manylinux_2_17
+
+          # musllinux images
           CIBW_MUSLLINUX_X86_64: musllinux_1_2
           CIBW_MUSLLINUX_AARCH64: musllinux_1_2
-          CIBW_SKIP: "pp* *-win32 *-manylinux_i686 *-musllinux_i686"
-          # Skip testing to speed up builds - we test in sdist job
+
+          # If your extension needs numpy headers at build time, ensure numpy is installed
+          # inside the wheel build environment before compilation.
+          CIBW_BEFORE_BUILD: "python -m pip install -U pip setuptools wheel numpy"
+
+          # Musllinux containers are Alpine-based; make sure build tools exist.
+          # (Safe even if already installed)
+          CIBW_BEFORE_ALL_LINUX: >
+            sh -c "if command -v apk >/dev/null 2>&1; then
+              apk add --no-cache build-base linux-headers;
+            fi"
+
+          # Skip tests to speed up wheels job (you test in sdist job)
           CIBW_TEST_SKIP: "*"
 
       - name: Upload wheels
@@ -58,32 +76,25 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # GitHub hosted runner reality check:
+          # intel: macos-13, arm64: macos-14 (or macos-latest for arm64)
           - arch: x86_64
-            runner: macos-15-intel
+            runner: macos-13
           - arch: arm64
-            runner: macos-15
+            runner: macos-14
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Install packaging
-        run: pip install --upgrade 'packaging>=24.2'
-
       - name: Build wheels with cibuildwheel
         uses: pypa/cibuildwheel@v2.21.3
         env:
-          CIBW_BUILD: "cp313-*"
+          CIBW_BUILD: "cp312-* cp313-* cp314-*"
           CIBW_ARCHS_MACOS: ${{ matrix.arch }}
-          CIBW_SKIP: "pp*"
-          # Skip testing to speed up builds
+          CIBW_SKIP: "pp* cp313t-* cp314t-*"
           CIBW_TEST_SKIP: "*"
-          # Use latest dependency versions to get packaging>=24.2
           CIBW_DEPENDENCY_VERSIONS: "latest"
+          CIBW_BEFORE_BUILD: "python -m pip install -U pip setuptools wheel numpy"
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -99,24 +110,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Install packaging
-        run: pip install --upgrade 'packaging>=24.2'
-
       - name: Build wheels with cibuildwheel
         uses: pypa/cibuildwheel@v2.21.3
         env:
-          CIBW_BUILD: "cp313-*"
+          CIBW_BUILD: "cp312-* cp313-* cp314-*"
           CIBW_ARCHS_WINDOWS: "AMD64"
-          CIBW_SKIP: "pp* *-win32"
-          # Skip testing to speed up builds
+          CIBW_SKIP: "pp* *-win32 cp313t-* cp314t-*"
           CIBW_TEST_SKIP: "*"
-          # Use latest dependency versions to get packaging>=24.2
           CIBW_DEPENDENCY_VERSIONS: "latest"
+          CIBW_BEFORE_BUILD: "python -m pip install -U pip setuptools wheel numpy"
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -126,7 +128,7 @@ jobs:
           if-no-files-found: error
 
   sdist:
-    name: Build sdist and test
+    name: Build sdist and smoke-test (CPython 3.13)
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -141,12 +143,12 @@ jobs:
       - name: Install build backend and test dependencies
         run: |
           python -m pip install --upgrade build
-          python -m pip install numpy>=2.1 pillow
+          python -m pip install -U numpy pillow
 
       - name: Build sdist
         run: python -m build -s
 
-      - name: Install package from sdist and test
+      - name: Install package from sdist and smoke-test
         run: |
           python -m pip install dist/*.tar.gz
           python -c "import mvcrender; from mvcrender.autocrop import AutoCrop; print('Package import successful!')"
@@ -168,8 +170,8 @@ jobs:
       name: pypi
       url: https://pypi.org/p/mvcrender
     permissions:
-      contents: write  # mandatory for uploading release assets
-      id-token: write  # mandatory for trusted publishing
+      contents: write
+      id-token: write
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -180,19 +182,13 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-
-          # Copy sdist
           cp artifacts/sdist/*.tar.gz dist/
-
-          # Copy all wheels
           find artifacts -name "*.whl" -exec cp {} dist/ \;
-
           echo "All distributions collected:"
           ls -lah dist/
-          echo "✅ Both wheels and sdist will be published to PyPI"
 
       - name: Upload distributions to GitHub Release
-        uses: softprops/action-gh-release@v2.3.3
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             dist/*.tar.gz
@@ -207,4 +203,3 @@ jobs:
           print-hash: true
           verify-metadata: true
           attestations: true
-          
