@@ -63,7 +63,7 @@ jobs:
           CIBW_TEST_SKIP: "*"
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-linux-${{ matrix.arch }}
           path: wheelhouse/*.whl
@@ -89,7 +89,7 @@ jobs:
           CIBW_BEFORE_BUILD: "python -m pip install -U pip setuptools wheel numpy"
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-macos
           path: wheelhouse/*.whl
@@ -113,7 +113,7 @@ jobs:
           CIBW_BEFORE_BUILD: "python -m pip install -U pip setuptools wheel numpy"
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-windows
           path: wheelhouse/*.whl
@@ -147,7 +147,7 @@ jobs:
           python tests/smoke.py
 
       - name: Upload sdist
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sdist
           path: dist/*.tar.gz
