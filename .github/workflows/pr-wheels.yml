@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Build wheels with cibuildwheel
-        uses: pypa/cibuildwheel@v3.3.1
+        uses: pypa/cibuildwheel@v3.4.1
         env:
           CIBW_BUILD: "cp312-* cp313-* cp314-*"
           CIBW_ARCHS_MACOS: "x86_64 arm64"
@@ -58,7 +58,7 @@ jobs:
         run: pip install --upgrade 'packaging>=24.2'
 
       - name: Build wheels with cibuildwheel
-        uses: pypa/cibuildwheel@v3.3.1
+        uses: pypa/cibuildwheel@v3.4.1
         env:
           CIBW_BUILD: "cp312-* cp313-* cp314-*"
           CIBW_ARCHS_WINDOWS: "AMD64"
