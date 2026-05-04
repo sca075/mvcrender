@@ -44,12 +44,28 @@ static inline long clampl(long v, long lo, long hi){
 }
 
 static PyObject* make_list4(long a,long b,long c,long d){
-    PyObject* l=PyList_New(4);
-    if(!l) return NULL;
-    PyList_SET_ITEM(l,0,PyLong_FromLong(a));
-    PyList_SET_ITEM(l,1,PyLong_FromLong(b));
-    PyList_SET_ITEM(l,2,PyLong_FromLong(c));
-    PyList_SET_ITEM(l,3,PyLong_FromLong(d));
+    PyObject* l = PyList_New(4);
+    PyObject* v0 = NULL;
+    PyObject* v1 = NULL;
+    PyObject* v2 = NULL;
+    PyObject* v3 = NULL;
+    if (!l) return NULL;
+    v0 = PyLong_FromLong(a);
+    v1 = PyLong_FromLong(b);
+    v2 = PyLong_FromLong(c);
+    v3 = PyLong_FromLong(d);
+    if (!v0 || !v1 || !v2 || !v3){
+        Py_XDECREF(v0);
+        Py_XDECREF(v1);
+        Py_XDECREF(v2);
+        Py_XDECREF(v3);
+        Py_DECREF(l);
+        return NULL;
+    }
+    PyList_SET_ITEM(l,0,v0);
+    PyList_SET_ITEM(l,1,v1);
+    PyList_SET_ITEM(l,2,v2);
+    PyList_SET_ITEM(l,3,v3);
     return l;
 }
 
@@ -359,8 +375,13 @@ static PyObject* AutoCrop_check_trim(AutoCropObject* self, PyObject* args){
         PyArrayObject* arr; uint8_t* p; int H,W;
         if (as_rgba_nd(&p, &H, &W, &arr, image_array) != 0) return NULL;
 
+        PyObject* new_crop_area = make_list4(0,0,W,H);
+        if (!new_crop_area){
+            Py_DECREF(arr);
+            return NULL;
+        }
         Py_XDECREF(self->crop_area);
-        self->crop_area = make_list4(0,0,W,H);
+        self->crop_area = new_crop_area;
         // sync to handler for Python parity
         if (self->handler && self->crop_area){
             PyObject_SetAttrString(self->handler, "crop_area", self->crop_area);
@@ -430,9 +451,13 @@ static PyObject* AutoCrop__async_auto_crop_data(AutoCropObject* self, PyObject* 
     self->trim_left=l; self->trim_up=u; self->trim_right=r; self->trim_down=d;
 
     if (!(l==0 && u==0 && r==0 && d==0)){
-        (void)AutoCrop__calculate_trimmed_dimensions(self, NULL);
+        PyObject* dims = AutoCrop__calculate_trimmed_dimensions(self, NULL);
+        if (!dims) return NULL;
+        Py_DECREF(dims);
+        PyObject* new_auto_crop = make_list4(l,u,r,d);
+        if (!new_auto_crop) return NULL;
         Py_XDECREF(self->auto_crop);
-        self->auto_crop = make_list4(l,u,r,d);
+        self->auto_crop = new_auto_crop;
         Py_INCREF(self->auto_crop);
         return self->auto_crop;
     }
@@ -450,8 +475,10 @@ static PyObject* AutoCrop_auto_crop_offset(AutoCropObject* self, PyObject* Py_UN
         long nu = PyLong_AsLong(u) + self->offset_top;
         long nr = PyLong_AsLong(r) - self->offset_right;
         long nd = PyLong_AsLong(d) - self->offset_bottom;
+        PyObject* new_auto_crop = make_list4(nl,nu,nr,nd);
+        if (!new_auto_crop) return NULL;
         Py_DECREF(self->auto_crop);
-        self->auto_crop = make_list4(nl,nu,nr,nd);
+        self->auto_crop = new_auto_crop;
     }
     Py_RETURN_NONE;
 }
@@ -464,11 +491,17 @@ static PyObject* AutoCrop__init_auto_crop(AutoCropObject* self, PyObject* Py_UNU
             Py_RETURN_NONE;
         }
         if (self->trim_left || self->trim_up || self->trim_right || self->trim_down){
+            PyObject* new_auto_crop = make_list4(self->trim_left, self->trim_up, self->trim_right, self->trim_down);
+            if (!new_auto_crop) return NULL;
             Py_XDECREF(self->auto_crop);
-            self->auto_crop = make_list4(self->trim_left, self->trim_up, self->trim_right, self->trim_down);
-            (void)AutoCrop_auto_crop_offset(self, NULL);
+            self->auto_crop = new_auto_crop;
+            PyObject* offset_result = AutoCrop_auto_crop_offset(self, NULL);
+            if (!offset_result) return NULL;
+            Py_DECREF(offset_result);
             // Update shared ref dimensions when using predefined trims
-            (void)AutoCrop__calculate_trimmed_dimensions(self, NULL);
+            PyObject* dims = AutoCrop__calculate_trimmed_dimensions(self, NULL);
+            if (!dims) return NULL;
+            Py_DECREF(dims);
         } else {
             Py_RETURN_NONE;
         }
@@ -761,20 +794,19 @@ static PyObject* AutoCrop_async_rotate_the_image(AutoCropObject* self, PyObject*
 
     PyObject* out = rot_rgba(src_arr, rotate);
     Py_DECREF(src_arr);
+    if (!out) return NULL;
 
-    // update crop_area same as Python
-    if (rotate == 90 || rotate == 270){
-        Py_XDECREF(self->crop_area);
-        self->crop_area = make_list4(self->trim_left, self->trim_up, self->trim_right, self->trim_down);
-    } else if (rotate == 180){
-        Py_XDECREF(self->crop_area);
+    // crop_area must remain the fixed 0° reference crop for downstream parsers.
+    PyObject* new_crop_area = NULL;
+    if (self->auto_crop && self->auto_crop != Py_None){
         Py_INCREF(self->auto_crop);
-        self->crop_area = self->auto_crop;
+        new_crop_area = self->auto_crop;
     } else {
-        Py_XDECREF(self->crop_area);
-        Py_INCREF(self->auto_crop);
-        self->crop_area = self->auto_crop;
+        Py_INCREF(Py_None);
+        new_crop_area = Py_None;
     }
+    Py_XDECREF(self->crop_area);
+    self->crop_area = new_crop_area;
     return out;
 }
 
@@ -840,8 +872,13 @@ static PyObject* AutoCrop_auto_trim_and_zoom_image(AutoCropObject* self, PyObjec
         Py_XDECREF(ct);
 
         // store auto_crop
+        PyObject* new_auto_crop = make_list4(self->trim_left, self->trim_up, self->trim_right, self->trim_down);
+        if (!new_auto_crop){
+            if (need_decref_colour) Py_DECREF(colour_obj);
+            return NULL;
+        }
         Py_XDECREF(self->auto_crop);
-        self->auto_crop = make_list4(self->trim_left, self->trim_up, self->trim_right, self->trim_down);
+        self->auto_crop = new_auto_crop;
 
         // best-effort sync to handler.crop_area as Python does
         if (self->handler && self->auto_crop){
@@ -856,7 +893,12 @@ static PyObject* AutoCrop_auto_trim_and_zoom_image(AutoCropObject* self, PyObjec
             Py_DECREF(shared);
         }
 
-        (void)AutoCrop_auto_crop_offset(self, NULL);
+        PyObject* offset_result = AutoCrop_auto_crop_offset(self, NULL);
+        if (!offset_result){
+            if (need_decref_colour) Py_DECREF(colour_obj);
+            return NULL;
+        }
+        Py_DECREF(offset_result);
         // after offset, keep handler.crop_area in sync
         if (self->handler && self->auto_crop){
             PyObject_SetAttrString(self->handler, "crop_area", self->auto_crop);
