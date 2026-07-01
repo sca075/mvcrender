@@ -22,7 +22,7 @@ jobs:
         arch: [x86_64, aarch64]
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Enable QEMU (for aarch64 emulation)
         if: matrix.arch == 'aarch64'
@@ -76,7 +76,7 @@ jobs:
     runs-on: macos-14
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Build wheels with cibuildwheel
         uses: pypa/cibuildwheel@v3.4.1
@@ -100,7 +100,7 @@ jobs:
     runs-on: windows-2022
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Build wheels with cibuildwheel
         uses: pypa/cibuildwheel@v3.4.1
@@ -124,7 +124,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.13
         uses: actions/setup-python@v6
