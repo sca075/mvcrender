@@ -31,7 +31,7 @@ jobs:
           platforms: arm64
 
       - name: Build wheels with cibuildwheel
-        uses: pypa/cibuildwheel@v3.4.1
+        uses: pypa/cibuildwheel@v4.1.1
         env:
           # Build wheels for CPython 3.12, 3.13, 3.14 (covers HA-ish + newest)
           CIBW_BUILD: "cp312-* cp313-* cp314-*"
@@ -79,7 +79,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Build wheels with cibuildwheel
-        uses: pypa/cibuildwheel@v3.4.1
+        uses: pypa/cibuildwheel@v4.1.1
         env:
           CIBW_BUILD: "cp312-* cp313-* cp314-*"
           CIBW_ARCHS_MACOS: "x86_64 arm64"
@@ -103,7 +103,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Build wheels with cibuildwheel
-        uses: pypa/cibuildwheel@v3.4.1
+        uses: pypa/cibuildwheel@v4.1.1
         env:
           CIBW_BUILD: "cp312-* cp313-* cp314-*"
           CIBW_ARCHS_WINDOWS: "AMD64"
